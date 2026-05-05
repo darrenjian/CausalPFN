@@ -22,11 +22,19 @@ Usage:
     batch = dgp.generate_batch(n_patients=256)
 """
 
+import sys
 import numpy as np
 from typing import Tuple
+from pathlib import Path
 
-from dgp import PatientHistory, DGPBatch
-from mimic_cohort import MIMICCohort
+# Handle both direct execution and package import
+try:
+    from .dgp import PatientHistory, DGPBatch
+    from .mimic_cohort import MIMICCohort
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from dgp import PatientHistory, DGPBatch
+    from mimic_cohort import MIMICCohort
 
 
 class MIMICSemiSyntheticDGP:

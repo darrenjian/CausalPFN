@@ -31,6 +31,7 @@ Usage:
     python evaluate_tabpfn.py --output_dir ./results_tabpfn --device cuda
 """
 
+import sys
 import json
 import argparse
 import warnings
@@ -39,7 +40,10 @@ import torch
 from pathlib import Path
 from datetime import datetime
 
-from dgp import make_dgp, DGP_CONFIGS
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from data.dgp import make_dgp, DGP_CONFIGS
 
 # Suppress TabPFN's internal warnings that clutter output
 warnings.filterwarnings("ignore", category=UserWarning, module="tabpfn")

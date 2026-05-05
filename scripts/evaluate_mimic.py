@@ -27,6 +27,7 @@ Usage:
 """
 
 import os
+import sys
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 os.environ.setdefault('OMP_NUM_THREADS', '1')
 
@@ -38,10 +39,13 @@ import torch
 from pathlib import Path
 from datetime import datetime
 
-from mimic_cohort import extract_cohort
-from mimic_dgp import make_mimic_dgp, MIMIC_DGP_CONFIGS
-from temporal_encoder import TemporalEncoder, collate_histories
-from lora import inject_lora
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from data.mimic_cohort import extract_cohort
+from data.mimic_dgp import make_mimic_dgp, MIMIC_DGP_CONFIGS
+from src.temporal_encoder import TemporalEncoder, collate_histories
+from src.lora import inject_lora
 
 # Setup TabPFN client authentication (token should be set via environment variable or notebook)
 try:

@@ -25,20 +25,24 @@ Usage:
 """
 
 import os
+import sys
 import math
 import argparse
 import json
 import time
 from pathlib import Path
 
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import numpy as np
 import torch
 import torch.nn as nn
 
-from dgp import make_dgp, DGP_CONFIGS, DGPBatch
-from temporal_encoder import TemporalEncoder, collate_histories
-from lora import inject_lora, print_parameter_summary
-from losses import JointLoss
+from data.dgp import make_dgp, DGP_CONFIGS, DGPBatch
+from src.temporal_encoder import TemporalEncoder, collate_histories
+from src.lora import inject_lora, print_parameter_summary
+from src.losses import JointLoss
 
 
 # ------------------------------------------------------------------

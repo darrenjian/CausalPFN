@@ -20,15 +20,19 @@ Usage:
     python evaluate.py --baselines_only
 """
 
+import sys
 import argparse
 import json
 import numpy as np
 import torch
 from pathlib import Path
 
-from dgp import make_dgp, DGP_CONFIGS, DGPBatch
-from temporal_encoder import TemporalEncoder, collate_histories
-from lora import inject_lora
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from data.dgp import make_dgp, DGP_CONFIGS, DGPBatch
+from src.temporal_encoder import TemporalEncoder, collate_histories
+from src.lora import inject_lora
 
 
 # ------------------------------------------------------------------

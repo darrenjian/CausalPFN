@@ -1,4 +1,4 @@
-# Temporal Encoder for Irregular Clinical Time-Series
+# Temporal-CausalPFN
 
 Adapting CausalPFN for causal inference on irregularly-sampled ICU data via LoRA and continuous-time positional encodings.
 
@@ -16,49 +16,40 @@ Irregular history H_i ──> Temporal Encoder E_phi ──> z_i (99-dim) ──
      covariates)             continuous-time PE)             indicator t_i)          causal inference)
 ```
 
-## File Reference
-
-### Core Architecture
-
-| File | Description |
-|---|---|
-| `temporal_encoder.py` | Transformer encoder with continuous-time PE and BatchNorm output normalization, outputs 99-dim embeddings |
-| `lora.py` | LoRA adapter injection into CausalPFN's 20 transformer layers |
-| `losses.py` | Joint training objective: causal + masked reconstruction + temporal consistency |
-
-### Data Generation
-
-| File | Description |
-|---|---|
-| `dgp.py` | Synthetic DGP: frequency + recency trend confounding (6 configs) |
-| `mimic_cohort.py` | Extracts real patient trajectories from MIMIC-IV demo data |
-| `mimic_dgp.py` | Semi-synthetic DGP: real MIMIC trajectories + simulated outcomes from known SCM |
-
-### Training
-
-| File | Description |
-|---|---|
-| `train.py` | Training loop: TemporalEncoder + LoRA rank 32 |
-
-### Evaluation
-
-| File | Description |
-|---|---|
-| `evaluate.py` | Basic evaluation: encoder vs. static baselines (last obs, mean+std) |
-| `evaluate_tabpfn.py` | TabPFN T-Learner and X-Learner baselines |
-| `evaluate_fair_comparison.py` | Fair comparison: same features to CausalPFN vs. TabPFN-X |
-| `evaluate_mimic.py` | Semi-synthetic MIMIC evaluation: real trajectories + simulated outcomes |
-| `run_trend_experiment.py` | End-to-end train + evaluate on trend-confounded configs |
-
-## Dependencies
+## Project Structure
 
 ```
-torch
-numpy
-pandas
-causalpfn          # pip install causalpfn
-tabpfn             # pip install tabpfn
+Temporal-CausalPFN/
+├── src/                          # Core model components
+│   ├── temporal_encoder.py       # Transformer with continuous-time PE
+│   ├── lora.py                   # LoRA injection for CausalPFN
+│   └── losses.py                 # Causal + reconstruction + consistency losses
+├── data/                         # Data generation
+│   ├── dgp.py                    # Synthetic DGP (6 confounding configs)
+│   ├── mimic_cohort.py           # MIMIC-IV cohort extraction
+│   └── mimic_dgp.py              # Semi-synthetic SCM for MIMIC
+├── scripts/                      # Training and evaluation
+│   ├── train.py                  # Joint encoder + LoRA training
+│   ├── evaluate.py               # Encoder vs static baselines
+│   ├── evaluate_fair_comparison.py  # CausalPFN vs TabPFN-X
+│   ├── evaluate_mimic.py         # Semi-synthetic MIMIC evaluation
+│   ├── evaluate_tabpfn.py        # TabPFN baselines
+│   └── run_trend_experiment.py   # Trend confounding ablations
+├── notebooks/
+│   └── colab_train_and_eval.ipynb  # Full pipeline on Colab GPU
+├── requirements.txt
+└── README.md
 ```
+
+## Installation
+
+```bash
+git clone https://github.com/darrenjian/Temporal-CausalPFN.git
+cd Temporal-CausalPFN
+pip install -r requirements.txt
+```
+
+Dependencies: `torch`, `numpy`, `pandas`, `scikit-learn`, `causalpfn`, `tabpfn-client`
 
 ## Synthetic Data Generating Process
 
@@ -86,7 +77,7 @@ Six configurations control confounding strength:
 Data is generated on-the-fly during training. To generate and inspect a batch:
 
 ```python
-from dgp import make_dgp
+from data.dgp import make_dgp
 
 dgp = make_dgp('strong_temporal', n_covariates=5, seed=42)
 batch = dgp.sample_batch(n_patients=256, window_hours=48.0)
@@ -100,7 +91,7 @@ print(batch.trend[:5])         # recency trend scores
 Run the built-in sanity check:
 
 ```bash
-python dgp.py
+python data/dgp.py
 ```
 
 ## Training
@@ -113,10 +104,10 @@ Training jointly optimizes the temporal encoder and LoRA adapters using three lo
 
 ```bash
 # Smoke test (CPU, ~2 min)
-python train.py --config strong_temporal --n_steps 5 --batch_size 32 --device cpu
+python scripts/train.py --config strong_temporal --n_steps 5 --batch_size 32 --device cpu
 
 # Full run (GPU, ~1 hour per config)
-python train.py \
+python scripts/train.py \
     --config strong_temporal \
     --n_steps 3000 \
     --batch_size 64 \
@@ -130,7 +121,7 @@ python train.py \
 ```bash
 for config in tabular_sufficient weak_temporal strong_temporal asymmetric; do
     for seed in 42 123 999; do
-        python train.py \
+        python scripts/train.py \
             --config $config \
             --n_steps 3000 \
             --batch_size 64 \
@@ -148,7 +139,7 @@ Checkpoints are saved to `checkpoint_dir/latest.pt` and include the encoder stat
 ### Main results (encoder vs. static baselines)
 
 ```bash
-python evaluate.py \
+python scripts/evaluate.py \
     --checkpoint ./checkpoints/strong_temporal/42/latest.pt \
     --all_configs \
     --device cuda
@@ -159,7 +150,7 @@ python evaluate.py \
 This is the key experiment. It feeds identical features to both estimators to isolate representation quality from estimator quality:
 
 ```bash
-python evaluate_fair_comparison.py \
+python scripts/evaluate_fair_comparison.py \
     --checkpoint_dir ./checkpoints \
     --output_dir ./results_fair \
     --device cuda
@@ -170,13 +161,13 @@ python evaluate_fair_comparison.py \
 Trains and evaluates on the two trend-confounded configs end-to-end:
 
 ```bash
-python run_trend_experiment.py --output_dir ./results_trend --device cuda
+python scripts/run_trend_experiment.py --output_dir ./results_trend --device cuda
 ```
 
 ### TabPFN baselines (no encoder)
 
 ```bash
-python evaluate_tabpfn.py --output_dir ./results_tabpfn --device cuda
+python scripts/evaluate_tabpfn.py --output_dir ./results_tabpfn --device cuda
 ```
 
 ## Semi-Synthetic MIMIC-IV Evaluation
@@ -200,7 +191,7 @@ The [MIMIC-IV demo dataset](https://physionet.org/content/mimic-iv-demo/2.2/) is
 ### Step 1: Verify cohort extraction
 
 ```bash
-python mimic_cohort.py ./mimic_iv
+python data/mimic_cohort.py ./mimic_iv
 ```
 
 This extracts ~119 ICU stays with 5 time-varying features (heart rate, mean BP, SpO2, creatinine, lactate). Treatment is defined as first IV antibiotic administration. Control patients are assigned pseudo-treatment times sampled from the treated distribution. All covariates are z-scored to match the synthetic DGP convention.
@@ -208,7 +199,7 @@ This extracts ~119 ICU stays with 5 time-varying features (heart rate, mean BP, 
 ### Step 2: Verify semi-synthetic DGP
 
 ```bash
-python mimic_dgp.py ./mimic_iv
+python data/mimic_dgp.py ./mimic_iv
 ```
 
 This runs all 6 SCM configurations on the extracted cohort and prints ATE accuracy, treatment rates, and temporal feature ranges. The SCM uses the same parametric form as the synthetic DGP so results are directly comparable.
@@ -218,7 +209,7 @@ This runs all 6 SCM configurations on the extracted cohort and prints ATE accura
 With trained encoder checkpoints:
 
 ```bash
-python evaluate_mimic.py \
+python scripts/evaluate_mimic.py \
     --checkpoint_dir ./checkpoints \
     --mimic_dir ./mimic_iv \
     --output_dir ./results_mimic \
@@ -228,7 +219,7 @@ python evaluate_mimic.py \
 Baselines only (no encoder needed):
 
 ```bash
-python evaluate_mimic.py \
+python scripts/evaluate_mimic.py \
     --baselines_only \
     --mimic_dir ./mimic_iv \
     --output_dir ./results_mimic \

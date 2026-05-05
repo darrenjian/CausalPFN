@@ -17,6 +17,7 @@ Usage:
 """
 
 import os
+import sys
 import json
 import math
 import argparse
@@ -28,14 +29,16 @@ import torch.nn as nn
 from pathlib import Path
 from datetime import datetime
 
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 warnings.filterwarnings("ignore", category=UserWarning, module="tabpfn")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# Import from existing project files
-from dgp import make_dgp, DGP_CONFIGS
-from temporal_encoder import TemporalEncoder, collate_histories
-from lora import inject_lora
-from losses import JointLoss
+from data.dgp import make_dgp, DGP_CONFIGS
+from src.temporal_encoder import TemporalEncoder, collate_histories
+from src.lora import inject_lora
+from src.losses import JointLoss
 
 TREND_CONFIGS = ["strong_temporal_trend", "trend_only"]
 SEEDS = [42, 123, 999]
